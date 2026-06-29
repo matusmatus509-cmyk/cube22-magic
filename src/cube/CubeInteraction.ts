@@ -54,7 +54,7 @@ export class CubeInteraction {
   private readonly MIN_DRAG_PX = 8;
   private readonly SENSITIVITY = 0.0105;
   private readonly ORBIT_SENSITIVITY = 0.008;
-  private readonly FORCE_TRIGGER_DELAY = 800; // ms
+  private readonly FORCE_TRIGGER_DELAY = 300; // ms
   private readonly CORNER_THRESHOLD = 50; // px from corner
 
   // Callback for force trigger

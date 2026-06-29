@@ -1,0 +1,10 @@
+{
+  "name": "CUBEMIX - 3D Rubik's Cube",
+  "short_name": "CUBEMIX",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0e0e12",
+  "theme_color": "#0e0e12",
+  "orientation": "portrait",
+  "icons": []
+}

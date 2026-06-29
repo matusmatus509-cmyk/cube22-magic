@@ -109,7 +109,7 @@ const handleToggleForce = () => {
           {status && <div className="force-status">{status}</div>}
 
           <div className="force-hint">
-            <p><strong>Trigger:</strong> Hold 800ms in screen corner</p>
+            <p><strong>Trigger:</strong> Hold 300ms in screen corner</p>
             <p><strong>How it works:</strong> Hidden faces → force state when rotated away</p>
           </div>
         </div>
@@ -128,6 +128,7 @@ export default function App() {
   const [solving, setSolving] = useState(false);
   const [showSolvedBanner, setShowSolvedBanner] = useState(false);
   const [showForcePanel, setShowForcePanel] = useState(false);
+  const [forceActive, setForceActive] = useState(false);
   const scrambleRef = useRef(false);
   const solveRef = useRef(false);
   const titlePressTimer = useRef<number | null>(null);
@@ -144,6 +145,7 @@ export default function App() {
         setTimeout(() => setShowSolvedBanner(false), 3000);
       }
     });
+    scene.onForceActiveChange = setForceActive;
     return () => { scene.destroy(); cubeSceneRef.current = null; };
   }, []);
 
@@ -274,6 +276,9 @@ export default function App() {
       <div className="cube-area">
         <div ref={mountRef} className="canvas-wrap" style={{ touchAction: 'none' }} />
       </div>
+
+      {/* ── Force Active Indicator ── */}
+      {forceActive && <div className="force-dot" />}
 
       {/* ── Bottom toolbar ── */}
       <nav className="toolbar">

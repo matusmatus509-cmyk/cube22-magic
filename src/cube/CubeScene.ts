@@ -18,6 +18,7 @@ export class CubeScene {
   private forceModeArmed = false;    // checkbox - ready to activate
   private forceModeActive = false;   // actually applying force (after corner trigger)
   private prevVisibility: Map<FaceKey, boolean> = new Map();
+  onForceActiveChange?: (active: boolean) => void;
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -134,6 +135,7 @@ export class CubeScene {
     this.cube.setState(solved);
     this.forceModeArmed = false;
     this.forceModeActive = false;
+    this.onForceActiveChange?.(false);
     this.resetVisibilityTracking();
   }
 
@@ -190,6 +192,7 @@ export class CubeScene {
   disarmForceMode() {
     this.forceModeArmed = false;
     this.forceModeActive = false;
+    this.onForceActiveChange?.(false);
   }
 
   /** Toggle armed state (for checkbox) */
@@ -212,11 +215,13 @@ export class CubeScene {
     this.forceModeActive = true;
     this.applyForceToCurrentlyHiddenFaces();
     this.resetVisibilityTracking();
+    this.onForceActiveChange?.(true);
   }
 
   /** Deactivate force mode */
   deactivateForceMode() {
     this.forceModeActive = false;
+    this.onForceActiveChange?.(false);
   }
 
   /** Toggle active state (for testing) */
