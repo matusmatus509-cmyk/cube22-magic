@@ -15,13 +15,13 @@
 }
 
 html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg); }
-#root { width: 100%; height: 100%; }
+#root { width: 100%; height: 100dvh; }
 
 /* ═══════════════════════════════
    LAYOUT
 ═══════════════════════════════ */
 .app-root {
-  width: 100vw; height: 100vh;
+  width: 100vw; height: 100dvh;
   display: flex; flex-direction: column;
   background: var(--bg);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -59,6 +59,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
   letter-spacing: 3px;
   color: var(--text2);
   flex: 1;
+  user-select: none;
 }
 
 .topbar-stats {
@@ -94,6 +95,15 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 .dot-unsolved {
   background: var(--orange);
   box-shadow: 0 0 6px rgba(249,115,22,0.4);
+}
+
+/* Mobile topbar */
+@media (max-width: 480px) {
+  .topbar { padding: 10px 12px; gap: 8px; }
+  .topbar-title { font-size: 13px; letter-spacing: 2px; }
+  .topbar-icon { width: 32px; height: 32px; }
+  .stat-num { font-size: 16px; }
+  .stat-lbl { font-size: 10px; }
 }
 
 /* ═══════════════════════════════
@@ -133,14 +143,16 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
   position: relative; z-index: 5;
   display: flex; flex-direction: column; align-items: center;
   min-height: 0; overflow: hidden;
+  width: 100%;
 }
 
 .canvas-wrap {
   flex: 1; width: 100%; min-height: 0;
   cursor: grab;
+  max-width: 100%; max-height: 100%;
 }
 .canvas-wrap:active { cursor: grabbing; }
-.canvas-wrap canvas { display: block; width: 100% !important; height: 100% !important; }
+.canvas-wrap canvas { display: block; width: 100% !important; height: 100% !important; max-width: 100%; max-height: 100%; }
 
 /* ═══════════════════════════════
    BOTTOM TOOLBAR
@@ -153,6 +165,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
   gap: 2px;
   padding: 8px 12px 14px;
   flex-shrink: 0;
+  background: transparent;
 }
 
 .tool {
@@ -201,6 +214,14 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
   color: var(--green);
   border-color: rgba(34,197,94,0.3);
   background: rgba(34,197,94,0.1);
+}
+
+/* Mobile toolbar */
+@media (max-width: 480px) {
+  .toolbar { padding: 6px 8px 10px; gap: 1px; }
+  .tool { padding: 8px 6px 4px; max-width: 100px; gap: 2px; }
+  .tool svg { width: 18px; height: 18px; }
+  .tool span { font-size: 9px; }
 }
 
 /* ═══════════════════════════════
@@ -305,7 +326,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 ═══════════════════════════════ */
 .force-dot {
   position: absolute;
-  left: 50%; bottom: 64px;
+  left: 50%; bottom: 72px;
   transform: translateX(-50%);
   width: 12px; height: 12px;
   border-radius: 50%;
@@ -318,6 +339,10 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; transform: translateX(-50%) scale(1); }
   50% { opacity: 0.6; transform: translateX(-50%) scale(1.15); }
+}
+
+@media (max-width: 480px) {
+  .force-dot { bottom: 64px; width: 10px; height: 10px; }
 }
 
 /* ═══════════════════════════════
@@ -445,10 +470,24 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg);
 
 .force-hint strong { color: var(--text); }
 
-@media (max-width: 400px) {
-  .topbar-title { font-size: 13px; letter-spacing: 2px; }
-  .stat-num { font-size: 16px; }
-  .tool { padding: 8px 6px 5px; }
+/* ═══════════════════════════════
+   RESPONSIVE / MOBILE
+═══════════════════════════════ */
+@media (max-width: 480px) {
+  .tool { padding: 8px 6px 4px; max-width: 100px; gap: 2px; }
   .tool svg { width: 18px; height: 18px; }
   .tool span { font-size: 9px; }
+  .solved-toast { padding: 8px 18px; font-size: 13px; top: 68px; }
+  .force-panel { min-width: auto; padding: 16px; }
+  .force-btn { padding: 10px 12px; font-size: 0.85rem; }
+  .drawer { width: 100vw; padding: 16px; }
+  .move-grid { grid-template-columns: repeat(4, 1fr); gap: 4px; }
+  .move-chip { padding: 8px 2px; font-size: 12px; }
+}
+
+/* Safe area for mobile notches/home indicators */
+@supports (padding: max(0px)) {
+  .topbar { padding-top: max(12px, env(safe-area-inset-top)); padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+  .toolbar { padding-bottom: max(14px, env(safe-area-inset-bottom)); padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+  .drawer { padding-top: max(20px, env(safe-area-inset-top)); padding-left: max(20px, env(safe-area-inset-left)); padding-bottom: max(20px, env(safe-area-inset-bottom)); }
 }
