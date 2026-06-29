@@ -141,6 +141,9 @@ export class RubiksCube {
       sticker.rotation.set(...rot);
       sticker.userData.isSticker = true;
       sticker.userData.face = face;
+      // Store local normal for world-space face detection
+      const localNormal = new THREE.Vector3(0, 0, 1).applyEuler(new THREE.Euler(...rot));
+      sticker.userData.normal = localNormal;
       group.add(sticker);
     }
   }
@@ -532,18 +535,33 @@ export class RubiksCube {
     const colorKey = forceColors[index];
     const color = FACE_COLORS[colorKey] || FACE_COLORS.X;
 
-    // Find and update the specific sticker mesh
+    // Face normals in local cubie space
+    const faceNormals: Record<FaceKey, THREE.Vector3> = {
+      U: new THREE.Vector3(0, 1, 0),
+      D: new THREE.Vector3(0, -1, 0),
+      F: new THREE.Vector3(0, 0, 1),
+      B: new THREE.Vector3(0, 0, -1),
+      L: new THREE.Vector3(-1, 0, 0),
+      R: new THREE.Vector3(1, 0, 0),
+    };
+    const targetNormal = faceNormals[face];
+
+    // Find and update the sticker by matching world normal
     let stickerFound = false;
     cubie.mesh.traverse(child => {
-      if (child instanceof THREE.Mesh && child.userData.isSticker && child.userData.face === face) {
-        if (child.material instanceof THREE.MeshPhongMaterial) {
-          child.material.color.set(color);
+      if (child instanceof THREE.Mesh && child.userData.isSticker && child.userData.normal) {
+        // Transform local normal to world space
+        const worldNormal = child.userData.normal.clone().transformDirection(child.matrixWorld).normalize();
+        if (worldNormal.dot(targetNormal) > 0.99) { // same direction
+          if (child.material instanceof THREE.MeshPhongMaterial) {
+            child.material.color.set(color);
+          }
+          stickerFound = true;
         }
-        stickerFound = true;
       }
     });
 
-    // If sticker doesn't exist (shouldn't happen for exterior faces), recreate all
+    // If sticker doesn't exist, recreate all
     if (!stickerFound) {
       this.updateCubieStickers(cubie);
     }
