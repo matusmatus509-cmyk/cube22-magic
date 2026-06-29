@@ -483,18 +483,65 @@ export class RubiksCube {
   applyForceToFaces(faces: FaceKey[], forceState: CubeStateData) {
     if (!forceState) return;
 
-    // For each face being forced, find the 9 cubies that have this face visible
-    // and set their sticker color directly from forceState based on logical position
+    // Face normals in world space (cubeGroup local = world since cubeGroup has no parent transforms besides rotation)
+    const faceWorldNormals: Record<FaceKey, THREE.Vector3> = {
+      U: new THREE.Vector3(0, 1, 0),
+      D: new THREE.Vector3(0, -1, 0),
+      F: new THREE.Vector3(0, 0, 1),
+      B: new THREE.Vector3(0, 0, -1),
+      L: new THREE.Vector3(-1, 0, 0),
+      R: new THREE.Vector3(1, 0, 0),
+    };
+
     for (const face of faces) {
       const forceColors = getFaceColors(forceState, face);
-      
-      // Find cubies that have this face on the outside
-      const targetCubies = this.cubies.filter(cubie => this.cubieHasFace(cubie, face));
-      
-      for (const cubie of targetCubies) {
-        this.updateCubieFaceSticker(cubie, face, forceColors);
+      const targetNormal = faceWorldNormals[face];
+
+      // Find all stickers whose world normal matches target face direction
+      const stickers: { mesh: THREE.Mesh; worldPos: THREE.Vector3 }[] = [];
+      this.cubeGroup.traverse(obj => {
+        if (obj instanceof THREE.Mesh && obj.userData.isSticker && obj.userData.normal) {
+          const worldNormal = obj.userData.normal.clone().transformDirection(obj.matrixWorld).normalize();
+          if (worldNormal.dot(targetNormal) > 0.99) {
+            const worldPos = new THREE.Vector3();
+            obj.getWorldPosition(worldPos);
+            stickers.push({ mesh: obj, worldPos });
+          }
+        }
+      });
+
+      // Sort stickers by world position to match forceColors array order
+      // forceColors is in standard face order: rows back-to-front, cols left-to-right
+      switch (face) {
+        case 'U': // sort by Z (back to front), then X (left to right)
+          stickers.sort((a, b) => a.worldPos.z - b.worldPos.z || a.worldPos.x - b.worldPos.x);
+          break;
+        case 'D': // sort by Z (back to front), then X (left to right) - looking up
+          stickers.sort((a, b) => a.worldPos.z - b.worldPos.z || a.worldPos.x - b.worldPos.x);
+          break;
+        case 'F': // sort by Y (top to bottom), then X (left to right)
+          stickers.sort((a, b) => b.worldPos.y - a.worldPos.y || a.worldPos.x - b.worldPos.x);
+          break;
+        case 'B': // sort by Y (top to bottom), then X (right to left - mirrored)
+          stickers.sort((a, b) => b.worldPos.y - a.worldPos.y || b.worldPos.x - a.worldPos.x);
+          break;
+        case 'L': // sort by Y (top to bottom), then Z (front to back)
+          stickers.sort((a, b) => b.worldPos.y - a.worldPos.y || a.worldPos.z - b.worldPos.z);
+          break;
+        case 'R': // sort by Y (top to bottom), then Z (back to front)
+          stickers.sort((a, b) => b.worldPos.y - a.worldPos.y || b.worldPos.z - a.worldPos.z);
+          break;
       }
-      
+
+      // Apply colors in sorted order
+      stickers.forEach((s, i) => {
+        if (i < forceColors.length && s.mesh.material instanceof THREE.MeshPhongMaterial) {
+          const colorKey = forceColors[i];
+          const color = FACE_COLORS[colorKey] || FACE_COLORS.X;
+          s.mesh.material.color.set(color);
+        }
+      });
+
       // Also update cubeState for consistency
       this.cubeState = setFaceColors(this.cubeState, face, forceColors);
     }
@@ -503,7 +550,7 @@ export class RubiksCube {
     this.onStateChangeCb?.(this.cubeState);
   }
 
-  /** Check if a cubie has the given face on its exterior */
+  /** Check if a cubie has the given face on its exterior (legacy, unused) */
   private cubieHasFace(cubie: Cubie, face: FaceKey): boolean {
     const { x, y, z } = cubie.logicalPos;
     switch (face) {
@@ -513,57 +560,6 @@ export class RubiksCube {
       case 'B': return z === -1;
       case 'L': return x === -1;
       case 'R': return x === 1;
-    }
-  }
-
-  /** Update a specific face sticker on a cubie with force colors */
-  private updateCubieFaceSticker(cubie: Cubie, face: FaceKey, forceColors: FaceColor[]) {
-    const { x, y, z } = cubie.logicalPos;
-    
-    // Calculate sticker index using same logic as getStickerColor
-    let row: number, col: number;
-    switch (face) {
-      case 'U': row = 1 - z; col = x + 1; break;
-      case 'D': row = z + 1; col = x + 1; break;
-      case 'F': row = 1 - y; col = x + 1; break;
-      case 'B': row = 1 - y; col = 1 - x; break;
-      case 'L': row = 1 - y; col = z + 1; break;
-      case 'R': row = 1 - y; col = 1 - z; break;
-      default: return;
-    }
-    const index = row * 3 + col;
-    const colorKey = forceColors[index];
-    const color = FACE_COLORS[colorKey] || FACE_COLORS.X;
-
-    // Face normals in local cubie space
-    const faceNormals: Record<FaceKey, THREE.Vector3> = {
-      U: new THREE.Vector3(0, 1, 0),
-      D: new THREE.Vector3(0, -1, 0),
-      F: new THREE.Vector3(0, 0, 1),
-      B: new THREE.Vector3(0, 0, -1),
-      L: new THREE.Vector3(-1, 0, 0),
-      R: new THREE.Vector3(1, 0, 0),
-    };
-    const targetNormal = faceNormals[face];
-
-    // Find and update the sticker by matching world normal
-    let stickerFound = false;
-    cubie.mesh.traverse(child => {
-      if (child instanceof THREE.Mesh && child.userData.isSticker && child.userData.normal) {
-        // Transform local normal to world space
-        const worldNormal = child.userData.normal.clone().transformDirection(child.matrixWorld).normalize();
-        if (worldNormal.dot(targetNormal) > 0.99) { // same direction
-          if (child.material instanceof THREE.MeshPhongMaterial) {
-            child.material.color.set(color);
-          }
-          stickerFound = true;
-        }
-      }
-    });
-
-    // If sticker doesn't exist, recreate all
-    if (!stickerFound) {
-      this.updateCubieStickers(cubie);
     }
   }
 
